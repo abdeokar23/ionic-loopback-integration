@@ -1,0 +1,12 @@
+{
+  "deviceDB": {
+    "host": "",
+    "port": 0,
+    "url": "",
+    "database": "",
+    "password": "",
+    "name": "deviceDB",
+    "user": "",
+    "connector": "mongodb"
+  }
+}
