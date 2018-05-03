@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014,2016. All Rights Reserved.
+// Copyright IBM Corp. 2014,2018. All Rights Reserved.
 // Node module: loopback
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
@@ -84,10 +84,10 @@ function AccessContext(context) {
     this.addPrincipal(principalType, principalId, principalName);
   }
 
-  var token = this.accessToken || {};
+  const token = this.accessToken;
 
   if (token.userId != null) {
-    this.addPrincipal(Principal.USER, token.userId);
+    this.addPrincipal(token.principalType || Principal.USER, token.userId);
   }
   if (token.appId != null) {
     this.addPrincipal(Principal.APPLICATION, token.appId);

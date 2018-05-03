@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2013,2016. All Rights Reserved.
+// Copyright IBM Corp. 2013,2018. All Rights Reserved.
 // Node module: loopback
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
@@ -161,6 +161,44 @@ app.model = function(Model, config) {
   Model.app = this;
   Model.emit('attached', this);
   return Model;
+};
+
+/**
+ * Remove all references to a previously registered Model.
+ *
+ * The method emits "modelDeleted" event as a counter-part to "modelRemoted"
+ * event.
+ *
+ * @param {String} modelName The name of the model to remove.
+ */
+app.deleteModelByName = function(modelName) {
+  const ModelCtor = this.models[modelName];
+  delete this.models[modelName];
+  delete this.models[classify(modelName)];
+  delete this.models[camelize(modelName)];
+
+  if (ModelCtor) {
+    ModelCtor.removeAllListeners();
+
+    const ix = this._models.indexOf(ModelCtor);
+    if (ix > -1) {
+      this._models.splice(ix, 1);
+    }
+  }
+
+  const remotes = this.remotes();
+  remotes.deleteClassByName(modelName);
+  remotes.deleteTypeByName(modelName);
+
+  if (ModelCtor && ModelCtor.dataSource) {
+    ModelCtor.dataSource.deleteModelByName(modelName);
+  } else {
+    this.registry.modelBuilder.deleteModelByName(modelName);
+  }
+
+  clearHandlerCache(this);
+
+  this.emit('modelDeleted', ModelCtor || modelName);
 };
 
 /**
@@ -349,9 +387,9 @@ app.enableAuth = function(options) {
     var modelId = modelInstance && modelInstance.id ||
       // replacement for deprecated req.param()
       (req.params && req.params.id !== undefined ? req.params.id :
-       req.body && req.body.id !== undefined ? req.body.id :
-       req.query && req.query.id !== undefined ? req.query.id :
-       undefined);
+        req.body && req.body.id !== undefined ? req.body.id :
+          req.query && req.query.id !== undefined ? req.query.id :
+            undefined);
 
     var modelName = Model.modelName;
 
@@ -464,7 +502,7 @@ app._verifyAuthModelRelations = function() {
       console.warn(
         'The app configuration follows the multiple user models setup ' +
           'as described in http://ibm.biz/setup-loopback-auth',
-          'The built-in role resolver $owner is not currently compatible ' +
+        'The built-in role resolver $owner is not currently compatible ' +
           'with this configuration and should not be used in production.');
     }
 
@@ -505,21 +543,21 @@ function dataSourcesFromConfig(name, config, connectorRegistry, registry) {
     'can not create data source without config object');
 
   if (typeof config.connector === 'string') {
-    name = config.connector;
-    if (connectorRegistry[name]) {
-      config.connector = connectorRegistry[name];
+    const connectorName = config.connector;
+    if (connectorRegistry[connectorName]) {
+      config.connector = connectorRegistry[connectorName];
     } else {
-      connectorPath = path.join(__dirname, 'connectors', name + '.js');
+      connectorPath = path.join(__dirname, 'connectors', connectorName + '.js');
 
       if (fs.existsSync(connectorPath)) {
         config.connector = require(connectorPath);
       }
     }
     if (config.connector && typeof config.connector === 'object' && !config.connector.name)
-      config.connector.name = name;
+      config.connector.name = connectorName;
   }
 
-  return registry.createDataSource(config);
+  return registry.createDataSource(name, config);
 }
 
 function configureModel(ModelCtor, config, app) {

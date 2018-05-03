@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014,2016. All Rights Reserved.
+// Copyright IBM Corp. 2014,2018. All Rights Reserved.
 // Node module: loopback
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
@@ -845,7 +845,7 @@ module.exports = function(registry) {
       ],
       description: format('Counts %s of %s.', scopeName, this.modelName),
       accessType: 'READ',
-      returns: {arg: 'count',  type: 'number'},
+      returns: {arg: 'count', type: 'number'},
     });
   };
 
@@ -873,7 +873,10 @@ module.exports = function(registry) {
 
     var regExp = /^__([^_]+)__([^_]+)$/;
     var relation = this.relations[relationName];
-    if (relation && relation.modelTo && relation.modelTo.sharedClass) {
+    if (relation && relation._nestRemotingProcessed) {
+      return; // Prevent unwanted circular traversals!
+    } else if (relation && relation.modelTo && relation.modelTo.sharedClass) {
+      relation._nestRemotingProcessed = true;
       var self = this;
       var sharedClass = this.sharedClass;
       var sharedToClass = relation.modelTo.sharedClass;
@@ -890,7 +893,7 @@ module.exports = function(registry) {
         acceptArgs = [
           {
             arg: paramName, type: 'any', http: {source: 'path'},
-            description: format('Foreign key for %s.',  relation.name),
+            description: format('Foreign key for %s.', relation.name),
             required: true,
           },
         ];

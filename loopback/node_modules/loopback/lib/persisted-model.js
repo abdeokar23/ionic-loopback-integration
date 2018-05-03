@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014,2016. All Rights Reserved.
+// Copyright IBM Corp. 2014,2018. All Rights Reserved.
 // Node module: loopback
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
@@ -15,6 +15,8 @@ var deprecated = require('depd')('loopback');
 var debug = require('debug')('loopback:persisted-model');
 var PassThrough = require('stream').PassThrough;
 var utils = require('./utils');
+var filterNodes = require('loopback-filters');
+
 var REPLICATION_CHUNK_SIZE = -1;
 
 module.exports = function(registry) {
@@ -1485,7 +1487,7 @@ module.exports = function(registry) {
 
   function applyUpdate(Model, id, current, data, change, conflicts, options, cb) {
     var Change = Model.getChangeModel();
-    var rev = current ?  Change.revisionForInst(current) : null;
+    var rev = current ? Change.revisionForInst(current) : null;
 
     if (rev !== change.prev) {
       debug('Detected non-rectified change of %s %j',
@@ -1855,6 +1857,7 @@ module.exports = function(registry) {
       cb = options;
       options = undefined;
     }
+    cb = cb || utils.createPromiseCallback();
 
     var idName = this.getIdName();
     var Model = this;
@@ -1880,16 +1883,22 @@ module.exports = function(registry) {
     Model.observe('after save', changeHandler);
     Model.observe('after delete', deleteHandler);
 
+    return cb.promise;
+
     function changeHandler(ctx, next) {
       var change = createChangeObject(ctx, 'save');
-      changes.write(change);
+      if (change) {
+        changes.write(change);
+      }
 
       next();
     };
 
     function deleteHandler(ctx, next) {
       var change = createChangeObject(ctx, 'delete');
-      changes.write(change);
+      if (change) {
+        changes.write(change);
+      }
 
       next();
     };
@@ -1910,6 +1919,15 @@ module.exports = function(registry) {
       }
 
       var hasTarget = target === 0 || !!target;
+
+      // apply filtering if options is set
+      if (options) {
+        var filtered = filterNodes([data], options);
+        if (filtered.length !== 1) {
+          return null;
+        }
+        data = filtered[0];
+      }
 
       var change = {
         target: target,

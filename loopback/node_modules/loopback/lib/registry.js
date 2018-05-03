@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014,2016. All Rights Reserved.
+// Copyright IBM Corp. 2014,2018. All Rights Reserved.
 // Node module: loopback
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
@@ -230,7 +230,7 @@ Registry.prototype.configureModel = function(ModelCtor, config) {
   // configuration, so that the datasource picks up updated relations
   if (config.dataSource) {
     assert(config.dataSource instanceof DataSource,
-        'Cannot configure ' + ModelCtor.modelName +
+      'Cannot configure ' + ModelCtor.modelName +
         ': config.dataSource must be an instance of DataSource');
     ModelCtor.attachTo(config.dataSource);
     debug('Attached model `%s` to dataSource `%s`',
@@ -398,7 +398,7 @@ Registry.prototype.memory = function(name) {
   name = name || 'default';
   var memory = (
     this._memoryDataSources || (this._memoryDataSources = {})
-    )[name];
+  )[name];
 
   if (!memory) {
     memory = this._memoryDataSources[name] = this.createDataSource({
